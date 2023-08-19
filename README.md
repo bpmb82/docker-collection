@@ -7,6 +7,7 @@ Services currently supported:
 * sabnzbd
 * sonarr
 * radarr
+* bazarr
 * emby
 * home assistant
 * wg-easy
