@@ -17,6 +17,10 @@ So, will result in sabnzbd.example.com, sonarr.example.com etc etc.
 
 ## NOTES
 
+### OS
+
+I have and will only test this on Linux, it might work on WSL as well but this has not been tested.
+
 ### DNS
 
 You will obviously have to create the correct DNS records for all these services.
