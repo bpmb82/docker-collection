@@ -19,7 +19,8 @@ So, will result in sabnzbd.example.com, sonarr.example.com etc etc.
 
 ### OS
 
-I have and will only test this on Linux, it might work on WSL as well but this has not been tested.
+I have and will only test this on Linux, it might work on WSL as well but this has not been tested. This playbook will also install Docker
+but only if the detected OS is debian or redhat based.
 
 ### DNS
 
