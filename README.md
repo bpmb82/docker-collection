@@ -17,6 +17,10 @@ So, will result in sabnzbd.example.com, sonarr.example.com etc etc.
 
 ## NOTES
 
+### DNS
+
+You will obviously have to create the correct DNS records for all these services.
+
 ### Firewall
 
 You might still need to adjust your firewall to allow specific traffic.
