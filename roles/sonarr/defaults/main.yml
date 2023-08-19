@@ -1,0 +1,13 @@
+---
+# defaults file for sonarr
+workdir: "/docker"
+download_dir: "/downloads"
+timezone: "UTC"
+loadbalancer: false
+swarm: false
+
+# service defaults
+service: "sonarr"
+service_version: "develop"
+service_port: "8989"
+service_image: "lscr.io/linuxserver/sonarr"

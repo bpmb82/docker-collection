@@ -1,0 +1,152 @@
+# This file is managed by ansible, do not modify
+#
+version: "3.3"
+
+{% if letsencrypt and provider == "azuredns" %}
+secrets:
+  azure_client_id:
+    external: true
+  azure_client_secret:
+    external: true
+  azure_resource_group:
+    external: true
+  azure_subscription_id:
+    external: true
+  azure_tenant_id:
+    external: true
+{% elif letsencrypt and provider == "cloudflare" %}
+secrets:
+  cf_api_email:
+    external: true
+  cf_api_key:
+    external: true
+  cf_dns_api_token:
+    external: true
+{% endif %}
+
+services:
+
+  traefik:
+    image: traefik:{{ traefik_version | default("latest", true ) }}
+    command:
+      - --providers.docker=true
+      - --providers.docker.swarmMode=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network={{ application }}-network
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entryPoint.to=websecure
+      - --entrypoints.web.http.redirections.entryPoint.scheme=https
+      - --entrypoints.websecure.address=:443
+{% if (not letsencrypt) or (homeassistant) %}
+      - --providers.file.filename=/etc/traefik/traefik_dynamic.toml
+      - --providers.file.watch=true
+{% endif %}
+{% if debug %}
+      - --log.level=DEBUG
+{% endif %}
+{% if letsencrypt %}
+      - --certificatesresolvers.le_resolver.acme.dnschallenge=true
+      - --certificatesresolvers.le_resolver.acme.dnschallenge.provider={{ provider }}
+{%   if provider == "azure" %}
+      - --certificatesresolvers.le_resolver.acme.email={{ email_address }}
+{%   elif provider == "cloudflare" %}
+      - --certificatesresolvers.cloudflare.acme.dnschallenge.resolvers=1.1.1.1:53,1.0.0.1:53
+      - --certificatesresolvers.le_resolver.acme.email={{ CF_API_EMAIL }}
+{%   endif %}
+      - --certificatesresolvers.le_resolver.acme.storage=/letsencrypt/acme.json
+      - --entrypoints.websecure.http.tls.certResolver=le_resolver
+      - --entrypoints.websecure.http.tls.domains[0].main={{ domain }}
+      - --entrypoints.websecure.http.tls.domains[0].sans=*.{{ domain }}
+{% endif %}
+      - --accesslog
+      - --api.dashboard=true
+{% if loadbalancer %}
+      - --entryPoints.websecure.proxyProtocol.insecure
+      - --entryPoints.websecure.forwardedHeaders.insecure
+{% endif %}
+    networks:
+      - {{ application }}-network
+    ports:
+{% if not forwardauth %}
+      - 80:80/tcp
+      - 443:443/tcp
+{% endif %}
+{% if forwardauth %}
+      - target: 80
+        published: 80
+        mode: host
+      - target: 443
+        published: 443
+        mode: host
+{% endif %}
+    volumes:
+{% if not letsencrypt %}
+      - "{{ workdir }}/traefik/certificate.key:/certificate.key"
+      - "{{ workdir }}/traefik/certificate.pem:/certificate.pem"
+{% endif %}
+{% if (not letsencrypt) or (homeassistant) %}
+      - "{{ workdir }}/traefik/traefik_dynamic.toml:/etc/traefik/traefik_dynamic.toml"
+{% endif %}
+{% if letsencrypt %}
+      - "{{ workdir }}/traefik/letsencrypt:/letsencrypt"
+{% endif %}
+      - /var/run/docker.sock:/var/run/docker.sock
+{% if letsencrypt and provider == "azuredns" %}
+    environment:
+      - AZURE_CLIENT_ID_FILE=/run/secrets/azure_client_id
+      - AZURE_CLIENT_SECRET_FILE=/run/secrets/azure_client_secret
+      - AZURE_SUBSCRIPTION_ID_FILE=/run/secrets/azure_subscription_id
+      - AZURE_TENANT_ID_FILE=/run/secrets/azure_tenant_id
+      - AZURE_RESOURCE_GROUP_FILE=/run/secrets/azure_resource_group
+    secrets:
+      - azure_client_id
+      - azure_client_secret
+      - azure_resource_group
+      - azure_subscription_id
+      - azure_tenant_id
+{% elif letsencrypt and provider == "cloudflare" %}
+    environment:
+      - CF_API_EMAIL_FILE=/run/secrets/cf_api_email
+      - CF_API_KEY_FILE=/run/secrets/cf_api_key
+      - CF_DNS_API_TOKEN_FILE=/run/secrets/cf_dns_api_token
+    secrets:
+      - cf_api_email
+      - cf_api_key
+      - cf_dns_api_token
+{% endif %}
+    extra_hosts:
+      - host.docker.internal:{{ ansible_docker0.ipv4.address }}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1024k"
+        max-file: "4"
+    deploy:
+      labels:
+        - APP=traefik
+      # service restart policy
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+        window: 120s
+      # service update configuration
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: continue
+        monitor: 60s
+        max_failure_ratio: 0.3
+      # placement constraint - in this case on 'manager' nodes only
+      placement:
+        constraints: [node.role == manager]
+
+networks:
+  {{ application }}-network:
+    external: true
+
+{% if not letsencrypt %}
+configs:
+  traefik-config:
+    file: /docker/traefik_dynamic.toml
+{% endif %}

@@ -1,0 +1,11 @@
+[Unit]
+Description=Listen for wake-on-lan from docker via pipe
+
+[Service]
+Restart=always
+User=nobody
+Group=nogroup
+ExecStart=/usr/bin/wakeonlan -f {{ workdir }}/{{ service }}/config/wolpipe
+
+[Install]
+WantedBy=multi-user.target

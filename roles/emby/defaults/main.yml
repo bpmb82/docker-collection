@@ -1,0 +1,16 @@
+---
+# defaults file for emby
+workdir: "/docker"
+download_dir: "/downloads"
+timezone: "UTC"
+loadbalancer: false
+swarm: false
+transcoding: false
+nvidia: false
+raspberry: false
+
+# service defaults
+service: "emby"
+service_version: "latest"
+service_port: "8096"
+service_image: "emby/embyserver"

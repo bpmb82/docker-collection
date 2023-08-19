@@ -1,0 +1,111 @@
+---
+# tasks file for traefik-swarm
+
+- name: Create folders
+  shell: "mkdir -p {{ workdir }}/traefik/letsencrypt"
+
+- name: Docker secrets section
+  block:
+
+    - name: Remove existing docker secrets if they exist
+      shell: docker secret rm {{ item }}
+      loop: "{{ docker_azure_secret_names }}"
+      ignore_errors: true
+      when: provider == "azuredns"
+
+    - name: Create docker secrets
+      shell: echo {{ item.secret_value }} | docker secret create {{ item.name }} -
+      no_log: true
+      loop:
+        - { name: 'azure_client_id', secret_value: '{{ AZURE_CLIENT_ID }}' }
+        - { name: 'azure_client_secret', secret_value: '{{ AZURE_SECRET }}' }
+        - { name: 'azure_resource_group', secret_value: 'prod' }
+        - { name: 'azure_subscription_id', secret_value: '{{ AZURE_SUBSCRIPTION_ID }}' }
+        - { name: 'azure_tenant_id', secret_value: '{{ AZURE_TENANT }}' }
+      when: provider == "azuredns"
+
+    - name: Remove existing docker secrets if they exist
+      shell: docker secret rm {{ item }}
+      loop: "{{ docker_cloudflare_secret_names }}"
+      ignore_errors: true
+      when: provider == "cloudflare"
+
+    - name: Create docker secrets
+      shell: echo {{ item.secret_value }} | docker secret create {{ item.name }} -
+      no_log: true
+      loop:
+        - { name: 'cf_api_email', secret_value: '{{ CF_API_EMAIL }}' }
+        - { name: 'cf_api_key', secret_value: '{{ CF_API_KEY }}' }
+        - { name: 'cf_dns_api_token', secret_value: '{{ CF_DNS_API_TOKEN }}'}
+      when: provider == "cloudflare"
+
+  when: letsencrypt == true
+
+- name: Deploy certificates section
+  block:
+
+    - name: Copy certficate key
+      no_log: True
+      shell: echo "{{ cert_key }}" >> {{ workdir }}/traefik/certificate.key && chmod 0600 {{ workdir }}/traefik/certificate.key
+
+    - name: Copy certificate pem
+      no_log: True
+      shell: echo "{{ cert_pem }}" >> {{ workdir }}/traefik/certificate.pem && chmod 0600 {{ workdir }}/traefik/certificate.pem
+
+  when: letsencrypt == false
+
+
+- name: Copy traefik_dynamic.toml file
+  template:
+    src: templates/traefik_dynamic.toml.j2
+    dest: "{{ workdir }}/traefik/traefik_dynamic.toml"
+    mode: 0644
+  when: letsencrypt == false or homeassistant == true
+
+- name: Check if docker network exists
+  shell: docker network ls | grep -c "{{ application }}-network" || /bin/true
+  register: docker_network_exists
+
+- name: Create docker networks
+  block:
+
+    - name: Get IP address in use by this node
+      shell: docker info | awk '/Node Address/{print $3}'
+      register: node_address
+      when: local_dev is not defined and inventory_hostname == primary_manager
+
+    - name: Use the node IP address to get the physical interface
+      shell: ip -br -4 a sh | awk '/{{ node_address.stdout }}/{print $1}'
+      register: node_interface
+      when: local_dev is not defined and inventory_hostname == primary_manager
+
+    - name: Get the interface mtu (necessary on some cloud servers)
+      shell: cat /sys/class/net/{{ node_interface.stdout }}/mtu
+      register: node_interface_mtu
+      when: local_dev is not defined and inventory_hostname == primary_manager
+
+    - name: Create docker network if it does not exist
+      shell: docker network create --scope swarm --driver overlay --opt com.docker.network.driver.mtu={{ node_interface_mtu.stdout }} --attachable --subnet 172.31.255.0/24 {{ application }}-network
+      when: local_dev is not defined and inventory_hostname == primary_manager
+
+    - name: Create docker network if it does not exist (local-dev)
+      shell: docker network create --scope swarm --driver overlay --attachable --subnet 172.31.255.0/24 {{ application }}-network
+      when: local_dev is defined
+
+  when: docker_network_exists.stdout == "0"
+
+- name: Copy traefik docker-compose jinja template
+  template:
+    src: templates/docker-compose.yml.j2
+    dest: "{{ workdir }}/traefik/docker-compose.yml"
+    mode: 0644
+
+- name: Deploy traefik
+  shell: docker stack deploy -c {{ workdir }}/traefik/docker-compose.yml traefik
+
+- name: Wait until traefik is running
+  shell: docker stack services --filter name=traefik_traefik traefik | grep -c 1/1 || /bin/true
+  register: traefik_running
+  until: traefik_running.stdout == "1"
+  retries: 40
+  delay: 20

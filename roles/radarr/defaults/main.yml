@@ -1,0 +1,13 @@
+---
+# defaults file for radarr
+workdir: "/docker"
+download_dir: "/downloads"
+timezone: "UTC"
+loadbalancer: false
+swarm: false
+
+# service defaults
+service: "radarr"
+service_version: "develop"
+service_port: "7878"
+service_image: "lscr.io/linuxserver/radarr"

@@ -1,0 +1,12 @@
+---
+# vars file for traefik-swarm
+docker_azure_secret_names:
+  - azure_client_id
+  - azure_client_secret
+  - azure_resource_group
+  - azure_subscription_id
+  - azure_tenant_id
+
+docker_cloudflare_secret_names:
+  - cloudflare_email
+  - cloudflare_apikey

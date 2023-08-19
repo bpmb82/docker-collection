@@ -1,0 +1,30 @@
+# Loads default set of integrations. Do not remove.
+default_config:
+
+# Load frontend themes from the themes folder
+frontend:
+themes: !include_dir_merge_named themes
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 172.0.0.0/8
+    - 127.0.0.1
+
+{% if wolpipe %}
+shell_command:
+{%   for device in wolpipe %}
+  wol_{{ device }}: "/bin/echo '{{ wolpipe[device].mac }}' > {{ workdir }}/{{ service }}/config/wolpipe"
+{%   endfor %}
+{% endif %}
+{#
+{% if tty %}
+shell_command:
+{%   for device in tty %}
+  {{ device }}: "{{ tty[device].path }}"
+{%   endfor %}
+{% endif %} #}

@@ -1,0 +1,79 @@
+---
+# tasks file for sabnzbd
+- name: Create folders
+  ansible.builtin.shell: mkdir -p {{ workdir }}/{{ service }}/config
+
+- name: Copy {{ service }} docker-compose jinja template
+  template:
+    src: templates/docker-compose.yml.j2
+    dest: "{{ workdir }}/{{ service }}/docker-compose.yml"
+    mode: 0644
+
+- name: Deploy if docker swarm
+  block:
+  
+    - name: Deploy {{ service }}
+      ansible.builtin.shell: docker stack deploy -c {{ workdir }}/{{ service }}/docker-compose.yml {{ service }}
+
+    - name: Wait until {{ service }} is running
+      ansible.builtin.shell: docker stack services --filter name={{ service }}_{{ service }} {{ service }} | grep -c 1/1 || /bin/true
+      register: service_running
+      until: service_running.stdout == "1"
+      retries: 40
+      delay: 20
+
+  when: swarm == true
+
+- name: Deploy {{ service }}
+  block:
+
+    - name: Deploy {{ service }}
+      shell: docker-compose -f {{ workdir }}/{{ service }}/docker-compose.yml up -d
+
+    - name: Wait until {{ service }} is running
+      shell: docker inspect {{ service }}_{{service }}_1 | jq '.[] | .State.Status'
+      register: service_running
+      until: service_running.stdout == '"running"'
+      retries: 40
+      delay: 20
+
+  when: swarm == false
+
+- name: Update {{ service }} if we need to edit the config
+  block:
+
+    - name: Wait until {{ service }} finished its configuration
+      shell: grep -c host_whitelist {{ workdir }}/{{ service }}/config/{{ service }}.ini
+      register: config_ready
+      until: config_ready.stdout == "1"
+      retries: 40
+      delay: 20
+
+    - name: Get configuration
+      shell: "awk '/host_whitelist/{print $3}' {{ workdir }}/{{ service }}/config/{{ service }}.ini | tr -d ,"
+      register: host_whitelist
+      
+    - name: Change the configuration
+      ansible.builtin.shell: "sed -i 's/{{ host_whitelist.stdout }}/{{ service }}.{{ domain }}/g' {{ workdir }}/{{ service }}/config/{{ service }}.ini"
+
+    - name: Restart {{ service }} (swarm mode)
+      ansible.builtin.shell: docker service update --force $(docker stack services {{ service }} | awk '/{{ service }}/{print $1}')
+      when: swarm == true
+
+    - name: Stop {{ service }}
+      ansible.builtin.shell: docker-compose -f {{ workdir }}/{{ service }}/docker-compose.yml down
+      when: swarm == false
+
+    - name: Start {{ service }}
+      ansible.builtin.shell: docker-compose -f {{ workdir }}/{{ service }}/docker-compose.yml up -d
+      when: swarm == false
+
+    - name: Wait until {{ service }} is running
+      shell: docker inspect {{ service }}_{{service }}_1 | jq '.[] | .State.Status'
+      register: service_running
+      until: service_running.stdout == '"running"'
+      retries: 40
+      delay: 20
+      when: swarm == false
+
+  when: service_config_edit == true

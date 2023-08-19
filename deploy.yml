@@ -1,0 +1,32 @@
+---
+- name: Install docker, deploy traefik and then other services
+  hosts: localhost
+  gather_facts: true
+  become: true
+
+  pre_tasks:
+
+    - name: Include vars file
+      ansible.builtin.include_vars: env.yml
+
+  roles:
+    - role: docker-install
+      when: swarm != true
+    - role: docker-install-swarm
+      when: swarm == true
+    - role: traefik
+      when: traefik == true and swarm != true
+    - role: traefik-swarm
+      when: traefik == true and swarm == true
+    - role: sabnzbd
+      when: sabnzbd == true
+    - role: sonarr
+      when: sonarr == true
+    - role: radarr
+      when: radarr == true
+    - role: homeassistant
+      when: homeassistant == true
+    - role: emby
+      when: emby == true
+    - role: wg-easy
+      when: wireguard == true

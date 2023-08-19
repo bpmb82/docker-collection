@@ -1,0 +1,14 @@
+---
+# defaults file for sabnzbd
+workdir: "/docker"
+download_dir: "/downloads"
+timezone: "UTC"
+loadbalancer: false
+swarm: false
+
+# service defaults
+service: "sabnzbd"
+service_version: "latest"
+service_port: "8080"
+service_image: "lscr.io/linuxserver/sabnzbd"
+service_config_edit: true

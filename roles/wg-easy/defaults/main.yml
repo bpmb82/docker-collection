@@ -1,0 +1,19 @@
+---
+# defaults file for wg-easy
+workdir: "/docker"
+timezone: "UTC"
+loadbalancer: false
+swarm: false
+
+# service defaults
+service: "wireguard"
+service_version: "latest"
+service_port: "51821"
+service_image: "weejewel/wg-easy"
+
+wg_host: "example.com"
+wg_pass: "pleasechangeme"
+wg_port: "51820"
+wg_default_address: "10.8.0.x"
+wg_default_dns: "1.1.1.1"
+wg_allowed_ips: "10.8.0.0/24, 192.168.1.0/24"

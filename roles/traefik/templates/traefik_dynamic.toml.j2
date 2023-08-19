@@ -1,0 +1,35 @@
+{% if not letsencrypt %}
+[tls.stores]
+  [tls.stores.default]
+   [tls.stores.default.defaultCertificate]
+     certFile = "/certificate.pem"
+     keyFile = "/certificate.key"
+
+[[tls.certificates]]
+   certFile = "/certificate.pem"
+   keyFile = "/certificate.key"
+   stores = ["default"]
+{% endif %}
+
+{% if local_host %}
+[http.routers]
+{%   for service in local_host %}
+  [http.routers.{{ service }}]
+    rule="Host(`{{ service }}.{{ domain }}`)"
+    entrypoints="websecure"
+    service="{{ service }}"
+{%     if letsencrypt %}
+    [http.routers.{{ service }}.tls]
+      certresolver="le_resolver"
+{%     else %}
+    tls=true
+{%     endif %}
+
+[http.services]
+  [http.services.{{ service }}]
+    [http.services.{{ service }}.loadbalancer.sticky.cookie]
+      secure=true
+    [[http.services.{{service }}.loadbalancer.servers]]
+      url="http://{{ local_host[service].address }}:{{ local_host[service].port }}"
+{%   endfor %}
+{% endif %}

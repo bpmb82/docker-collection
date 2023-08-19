@@ -1,0 +1,75 @@
+---
+# tasks file for homeassistant
+- name: Create folders
+  shell: mkdir -p {{ workdir }}/{{ service }}/config
+
+- name: Create host side configuration for Wake On LAN
+  block:
+
+    - name: Install wakeonlan on the host if OS is Debian based
+      ansible.builtin.apt: name=wakeonlan state=latest update_cache=yes
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Install wakeonlan on the host if OS is RedHat based
+      ansible.builtin.yum: name=wakeonlan state=latest
+      when: ansible_facts['os_family'] == "RedHat"
+
+    - name: Create the named pipe
+      ansible.builtin.shell: mkfifo {{ workdir }}/{{ service }}/config/wolpipe
+
+    - name: Make sure it has the correct permissions
+      ansible.builtin.shell: chmod 644 {{ workdir }}/{{ service }}/config/wolpipe
+
+    - name: Copy over systemd service
+      ansible.builtin.template:
+        src: templates/docker-wol.service.j2
+        dest: /etc/systemd/system/docker-wol.service
+        mode: 0644
+
+    - name: Start docker-wol daemon
+      ansible.builtin.service: name=docker-wol state=started enabled=true
+
+  when: wolpipe is defined
+
+- name: Copy {{ service }} docker-compose jinja template
+  template:
+    src: templates/docker-compose.yml.j2
+    dest: "{{ workdir }}/{{ service }}/docker-compose.yml"
+    mode: 0644
+
+- name: Deploy {{ service }}
+  shell: docker-compose -f {{ workdir }}/{{ service }}/docker-compose.yml up -d
+
+- name: Wait until {{ service }} is running
+  shell: docker inspect {{ service }}_{{service }}_1 | jq '.[] | .State.Status'
+  register: service_running
+  until: service_running.stdout == '"running"'
+  retries: 40
+  delay: 20
+
+- name: Update {{ service }} if we need to edit the config
+  block:
+
+    - name: Get configuration
+      shell: "awk '/host_whitelist/{print $3}' {{ workdir }}/{{ service }}/config/{{ service }}.ini | tr -d ,"
+      register: host_whitelist
+
+    - name: Create additional yaml files for automation, scripts etc
+      shell: touch {{ workdir }}/{{ service }}/config/{{ item }}.yaml
+      loop:
+        - "automation"
+        - "scripts"
+        - "scenese"
+
+    - name: Create the themes folder
+      shell: mkdir -p {{ workdir }}/{{ service }}/config/themes
+      
+    - name: Copy {{ service }} configuration template
+      ansible.builtin.template:
+        src: templates/configuration.yaml.j2
+        dest: "{{ workdir }}/{{ service }}/config/configuration.yaml"
+
+    - name: Restart {{ service }}
+      ansible.builtin.shell: docker restart {{ service }}_{{ service }}_1
+
+  when: service_config_edit == true

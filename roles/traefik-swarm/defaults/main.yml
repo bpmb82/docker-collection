@@ -1,0 +1,9 @@
+---
+# defaults file for traefik-swarm
+workdir: "/docker"
+letsencrypt: true
+debug: false
+loadbalancer: false
+forwardauth: false
+primary_manager: "localhost"
+email_address: "someone@example.com"

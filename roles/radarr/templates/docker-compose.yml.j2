@@ -1,0 +1,79 @@
+# This file is managed by ansible, do not modify
+#
+version: "3.3"
+
+services:
+
+  {{ service }}:
+    image: {{ service_image }}:{{ service_version }}
+    networks:
+      - {{ application }}-network
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ="{{ timezone }}"
+    volumes:
+      - "{{ workdir }}/{{ service }}/config:/config"
+      - "{{ download_dir }}:/downloads"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1024k"
+        max-file: "4"
+{% if not swarm %}
+    labels:
+      - APP={{ service }}
+      - traefik.enable=true
+      - traefik.http.routers.{{ service }}.rule=Host(`{{ service }}.{{ domain }}`)
+      - traefik.http.routers.{{ service }}.entrypoints=websecure
+      - traefik.http.routers.{{ service }}.tls=true
+{%   if letsencrypt %}
+      - traefik.http.routers.{{ service }}.tls.certresolver=le_resolver
+{%   endif %}
+      - traefik.http.routers.{{ service }}.service={{ service }}
+      - traefik.http.services.{{ service }}.loadbalancer.server.port={{ service_port }}
+      - traefik.http.services.{{ service }}.loadbalancer.sticky.cookie=true
+      - traefik.http.services.{{ service }}.loadbalancer.sticky.cookie.secure=true
+{%   if loadbalancer %}
+      - traefik.http.services.{{ service }}.loadbalancer.passhostheader=true
+{%   endif %}
+      - traefik.docker.network={{ application }}-network
+    restart: unless-stopped
+{% endif %}
+{% if swarm %}
+    deploy:
+      labels:
+        - APP={{ service }}
+        - traefik.enable=true
+        - traefik.http.routers.{{ service }}.rule=Host(`{{ service }}.{{ domain }}`)
+        - traefik.http.routers.{{ service }}.entrypoints=websecure
+        - traefik.http.routers.{{ service }}.tls=true
+{%   if letsencrypt %}
+        - traefik.http.routers.{{ service }}.tls.certresolver=le_resolver
+{%   endif %}
+        - traefik.http.routers.{{ service }}.service={{ service }}
+        - traefik.http.services.{{ service }}.loadbalancer.server.port={{ service_port }}
+        - traefik.http.services.{{ service }}.loadbalancer.sticky.cookie=true
+        - traefik.http.services.{{ service }}.loadbalancer.sticky.cookie.secure=true
+{%   if loadbalancer %}
+        - traefik.http.services.{{ service }}.loadbalancer.passhostheader=true
+{%   endif %}
+        - traefik.docker.network={{ application }}-network
+      # service restart policy
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+        window: 120s
+      # service update configuration
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: continue
+        monitor: 60s
+        max_failure_ratio: 0.3
+{% endif %}
+
+networks:
+  {{ application }}-network:
+    external: true

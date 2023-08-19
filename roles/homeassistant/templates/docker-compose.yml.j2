@@ -1,0 +1,54 @@
+# This file is managed by ansible, do not modify
+#
+version: "3.3"
+
+services:
+
+  {{ service }}:
+    image: {{ service_image }}:{{ service_version }}
+    networks:
+      - {{ application }}-network
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ="{{ timezone }}"
+      - HC_BASEPATH=/config
+      - HC_IGNORE_SSL=True
+    volumes:
+      - "{{ workdir }}/{{ service }}/config:/config"
+{% if wolpipe %}
+      - {{ workdir }}/{{ service }}/config/wolpipe:/config/wolpipe
+{% endif %}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1024k"
+        max-file: "4"
+{% if tty %}
+    devices:
+{%   for device in tty %}
+      - {{ tty[device].path }}:{{ tty[device].path }}
+{%   endfor %}
+{% endif %}
+    labels:
+      - APP={{ service }}
+      - traefik.enable=true
+      - traefik.http.routers.{{ service }}.rule=Host(`{{ service }}.{{ domain }}`)
+      - traefik.http.routers.{{ service }}.entrypoints=websecure
+      - traefik.http.routers.{{ service }}.tls=true
+{% if letsencrypt %}
+      - traefik.http.routers.{{ service }}.tls.certresolver=le_resolver
+{% endif %}
+      - traefik.http.routers.{{ service }}.service={{ service }}
+      - traefik.http.services.{{ service }}.loadbalancer.server.port={{ service_port }}
+      - traefik.http.services.{{ service }}.loadbalancer.sticky.cookie=true
+      - traefik.http.services.{{ service }}.loadbalancer.sticky.cookie.secure=true
+{% if loadbalancer %}
+      - traefik.http.services.{{ service }}.loadbalancer.passhostheader=true
+{% endif %}
+      - traefik.docker.network={{ application }}-network
+    restart: unless-stopped
+
+networks:
+  {{ application }}-network:
+    external: true

@@ -1,0 +1,12 @@
+---
+# defaults file for homeassistant
+workdir: "/docker"
+timezone: "UTC"
+loadbalancer: false
+
+# service defaults
+service: "homeassistant"
+service_version: "stable"
+service_port: "8123"
+service_image: "ghcr.io/home-assistant/home-assistant"
+service_config_edit: true
