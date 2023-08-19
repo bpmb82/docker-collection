@@ -24,6 +24,8 @@
       when: sonarr == true
     - role: radarr
       when: radarr == true
+    - role: bazarr
+      when: bazarr == true
     - role: homeassistant
       when: homeassistant == true
     - role: emby
