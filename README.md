@@ -1,6 +1,16 @@
 # docker-collection
 Collection of docker images deployed with Ansible
 
+Services currently supported:
+
+* traefik
+* sabnzbd
+* sonarr
+* radarr
+* emby
+* home assistant
+* wg-easy
+
 ## How to
 
 1. Install ansible, see: [Ansible install](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html#installing-and-upgrading-ansible-with-pip)
