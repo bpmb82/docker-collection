@@ -9,6 +9,7 @@ Services currently supported:
 * radarr
 * bazarr
 * emby
+* jellyfin
 * home assistant
 * wg-easy
 
