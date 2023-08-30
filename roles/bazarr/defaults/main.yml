@@ -1,0 +1,13 @@
+---
+# defaults file for bazarr
+workdir: "/docker"
+download_dir: "/downloads"
+timezone: Etc/UTC
+loadbalancer: false
+swarm: false
+
+# service defaults
+service: "bazarr"
+service_version: "latest"
+service_port: "6767"
+service_image: "lscr.io/linuxserver/bazarr"
