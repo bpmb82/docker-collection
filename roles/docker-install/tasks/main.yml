@@ -46,7 +46,7 @@
     when: ansible_facts['os_family'] == "RedHat"
 
   - name: Stop docker service
-    service: name=docker state=stopped
+    ansible.builtin.service: name=docker state=stopped
     when: usernamespaces is defined
 
   - name: Copy default docker daemon configuration
@@ -128,7 +128,7 @@
   when: swarm_mode == true and single_host == false and docker_swarm_present.stdout != "1"
 
 - name: Stop docker service
-  service: name=docker state=stopped
+  ansible.builtin.service: name=docker state=stopped
   when: docker_check.failed == True
 
 - name: Start docker daemon
