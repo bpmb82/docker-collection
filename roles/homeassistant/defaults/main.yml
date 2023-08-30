@@ -5,6 +5,7 @@ timezone: "UTC"
 loadbalancer: false
 
 # service defaults
+hacs: true
 service: "homeassistant"
 service_version: "stable"
 service_port: "8123"
