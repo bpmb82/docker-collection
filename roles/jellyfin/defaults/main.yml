@@ -1,0 +1,16 @@
+---
+# defaults file for jellyfin
+workdir: "/docker"
+download_dir: "/downloads"
+timezone: Etc/UTC
+loadbalancer: false
+swarm: false
+transcoding: false
+raspberry: false
+
+# service defaults
+service: "jellyfin"
+service_version: "latest"
+service_port: "8096"
+service_image: "lscr.io/linuxserver/jellyfin"
+

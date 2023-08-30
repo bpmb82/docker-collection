@@ -28,5 +28,8 @@
       when: homeassistant == true
     - role: emby
       when: emby == true
+    - role: jellyfin
+      when: jellyfin == true
     - role: wg-easy
       when: wireguard == true
+      
