@@ -15,16 +15,16 @@ http:
     - 172.0.0.0/8
     - 127.0.0.1
 
-{% if wolpipe %}
+{% if wolpipe or tty %}
 shell_command:
-{%   for device in wolpipe %}
-  wol_{{ device }}: "/bin/echo '{{ wolpipe[device].mac }}' > {{ workdir }}/{{ service }}/config/wolpipe"
-{%   endfor %}
-{% endif %}
-{#
-{% if tty %}
-shell_command:
-{%   for device in tty %}
+{%   if wolpipe %}
+{%     for device in wolpipe %}
+  wol_{{ device }}: "/bin/echo '{{ wolpipe[device].mac }}' > /config/wolpipe"
+{%     endfor %}
+{%   endif %}
+{%   if tty %}
+{%     for device in tty %}
   {{ device }}: "{{ tty[device].path }}"
-{%   endfor %}
-{% endif %} #}
+{%     endfor %}
+{%   endif %}
+{% endif %}
