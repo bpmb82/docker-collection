@@ -2,7 +2,7 @@
 # tasks file for slskd
 - name: Create folders
   ansible.builtin.file:
-    path: "{{ workdir }}/{{ service }}/config"
+    path: "{{ workdir }}/{{ service }}/app"
     recurse: true
     state: directory
     mode: 0755
@@ -42,4 +42,3 @@
       delay: 20
 
   when: swarm == false
-  
