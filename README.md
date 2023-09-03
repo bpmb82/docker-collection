@@ -12,6 +12,7 @@ Services currently supported:
 * jellyfin
 * home assistant
 * wg-easy
+* slskd
 
 ## How to
 

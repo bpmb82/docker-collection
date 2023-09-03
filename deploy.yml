@@ -34,4 +34,6 @@
       when: jellyfin == true
     - role: wg-easy
       when: wireguard == true
+    - role: slskd
+      when: slskd == true
       

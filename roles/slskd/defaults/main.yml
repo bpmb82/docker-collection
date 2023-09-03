@@ -1,0 +1,13 @@
+---
+# defaults file for slskd
+workdir: "/docker"
+download_dir: "/downloads"
+timezone: "UTC"
+loadbalancer: false
+swarm: false
+
+# service defaults
+service: "slskd"
+service_version: "latest"
+service_port: "5030"
+service_image: "slskd/slskd"
