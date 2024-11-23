@@ -26,6 +26,14 @@
       when: radarr == true
     - role: bazarr
       when: bazarr == true
+    - role: readarr
+      vars:
+        - service: "ebooks"
+      when: readarr == true
+    - role: readarr
+      vars:
+        - service: "audiobooks"
+      when: readarr == true
     - role: homeassistant
       when: homeassistant == true
     - role: emby
@@ -36,4 +44,3 @@
       when: wireguard == true
     - role: slskd
       when: slskd == true
-      
