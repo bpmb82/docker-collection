@@ -1,11 +1,21 @@
 ---
-# tasks file for bazarr
+# tasks file for fireflyiii
+- name: Save a random string so we can have multiple servers at the same time
+  set_fact:
+    app_key: "{{ lookup('password', '/dev/null chars=ascii_lowercase,ascii_uppercase,digits length=32') }}"
+    auto_import_secret: "{{ lookup('password', '/dev/null chars=ascii_lowercase,ascii_uppercase,digits length=32') }}"
+    static_cron_token: "{{ lookup('password', '/dev/null chars=ascii_lowercase,ascii_uppercase,digits length=32') }}"
+
 - name: Create folders
   ansible.builtin.file:
-    path: "{{ workdir }}/{{ service }}/config"
+    path: "{{ workdir }}/{{ service }}/{{ item }}"
     recurse: true
     state: directory
     mode: 0755
+  loop:
+    - config
+    - upload
+    - db
 
 - name: Copy {{ service }} docker-compose jinja template
   ansible.builtin.template:
@@ -22,7 +32,7 @@
     - name: Wait until {{ service }} is running
       ansible.builtin.shell: docker stack services --filter name={{ service }}_{{ service }} {{ service }} | grep -c 1/1 || /bin/true
       register: service_running
-      until: service_running.stdout == "1"
+      until: service_running.stdout == "3 / 3"  
       retries: 40
       delay: 20
 

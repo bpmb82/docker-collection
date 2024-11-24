@@ -28,10 +28,10 @@
   block:
 
     - name: Deploy {{ service }}
-      shell: docker-compose -f {{ workdir }}/{{ service }}/docker-compose.yml up -d
+      ansible.builtin.shell: docker compose -f {{ workdir }}/{{ service }}/docker-compose.yml up -d
 
     - name: Wait until {{ service }} is running
-      shell: docker inspect {{ service }}_{{service }}_1 | jq '.[] | .State.Status'
+      shell: docker inspect {{ service }}-{{service }}-1 | jq '.[] | .State.Status'
       register: service_running
       until: service_running.stdout == '"running"'
       retries: 40
@@ -61,15 +61,15 @@
       when: swarm == true
 
     - name: Stop {{ service }}
-      ansible.builtin.shell: docker-compose -f {{ workdir }}/{{ service }}/docker-compose.yml down
+      ansible.builtin.shell: docker compose -f {{ workdir }}/{{ service }}/docker-compose.yml down
       when: swarm == false
 
     - name: Start {{ service }}
-      ansible.builtin.shell: docker-compose -f {{ workdir }}/{{ service }}/docker-compose.yml up -d
+      ansible.builtin.shell: docker compose -f {{ workdir }}/{{ service }}/docker-compose.yml up -d
       when: swarm == false
 
     - name: Wait until {{ service }} is running
-      shell: docker inspect {{ service }}_{{service }}_1 | jq '.[] | .State.Status'
+      shell: docker inspect {{ service }}-{{service }}-1 | jq '.[] | .State.Status'
       register: service_running
       until: service_running.stdout == '"running"'
       retries: 40

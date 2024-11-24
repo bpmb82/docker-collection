@@ -2,4 +2,5 @@
 # defaults file for docker
 workdir: "/docker"
 single_host: true
-swarm_mode: false
+swarm: false
+advertise_address: 127.0.0.1

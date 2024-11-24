@@ -32,7 +32,7 @@
 
     - name: Create docker secrets
       ansible.builtin.shell: echo {{ item.secret_value }} | docker secret create {{ item.name }} -
-      no_log: true
+      no_log: false
       loop:
         - { name: 'cf_api_email', secret_value: '{{ CF_API_EMAIL }}' }
         - { name: 'cf_api_key', secret_value: '{{ CF_API_KEY }}' }
@@ -89,7 +89,7 @@
     src: templates/traefik_dynamic.toml.j2
     dest: "{{ workdir }}/traefik/traefik_dynamic.toml"
     mode: 0644
-  when: letsencrypt == false or local_host == true
+  when: letsencrypt == false
 
 - name: Check if docker network exists
   ansible.builtin.shell: docker network ls | grep -c "{{ application }}-network" || /bin/true
@@ -101,25 +101,25 @@
     - name: Get IP address in use by this node
       ansible.builtin.shell: docker info | awk '/Node Address/{print $3}'
       register: node_address
-      when: local_dev is not defined and inventory_hostname == primary_manager
+      when: local_host is false and inventory_hostname == primary_manager
 
     - name: Use the node IP address to get the physical interface
       ansible.builtin.shell: ip -br -4 a sh | awk '/{{ node_address.stdout }}/{print $1}'
       register: node_interface
-      when: local_dev is not defined and inventory_hostname == primary_manager
+      when: local_host is false and inventory_hostname == primary_manager
 
     - name: Get the interface mtu (necessary on some cloud servers)
       ansible.builtin.shell: cat /sys/class/net/{{ node_interface.stdout }}/mtu
       register: node_interface_mtu
-      when: local_dev is not defined and inventory_hostname == primary_manager
+      when: local_host is false and inventory_hostname == primary_manager
 
     - name: Create docker network if it does not exist
       ansible.builtin.shell: docker network create --scope swarm --driver overlay --opt com.docker.network.driver.mtu={{ node_interface_mtu.stdout }} --attachable --subnet 172.31.255.0/24 {{ application }}-network
-      when: local_dev is not defined and inventory_hostname == primary_manager
+      when: local_host is false and inventory_hostname == primary_manager
 
     - name: Create docker network if it does not exist (local-dev)
       ansible.builtin.shell: docker network create --scope swarm --driver overlay --attachable --subnet 172.31.255.0/24 {{ application }}-network
-      when: local_dev is defined
+      when: local_host is true
 
   when: docker_network_exists.stdout == "0" and swarm == true
 
@@ -156,10 +156,10 @@
   block:
 
     - name: Deploy traefik
-      ansible.builtin.shell: docker-compose -f {{ workdir }}/traefik/docker-compose.yml up -d
+      ansible.builtin.shell: docker compose -f {{ workdir }}/traefik/docker-compose.yml up -d
 
     - name: Wait until traefik is running
-      ansible.builtin.shell: docker inspect traefik_traefik_1 | jq '.[] | .State.Status'
+      ansible.builtin.shell: docker inspect traefik-traefik-1 | jq '.[] | .State.Status'
       register: service_running
       until: service_running.stdout == '"running"'
       retries: 40
