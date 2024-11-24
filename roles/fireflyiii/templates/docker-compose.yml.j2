@@ -1,0 +1,358 @@
+# This file is managed by ansible, do not modify
+#
+services:
+
+  {{ service }}:
+    image: {{ service_image }}:{{ service_version }}
+    networks:
+      - {{ application }}-network
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ="{{ timezone }}"
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - SITE_OWNER={{ emailaddress }}
+      - APP_KEY={{ app_key }}
+      - DEFAULT_LANGUAGE=en_US
+      - DEFAULT_LOCALE=equal
+      - TRUSTED_PROXIES=**
+      - LOG_CHANNEL=stack
+      - APP_LOG_LEVEL=notice
+      - AUDIT_LOG_LEVEL=emergency
+      - AUDIT_LOG_CHANNEL=
+      - PAPERTRAIL_HOST=
+      - PAPERTRAIL_PORT=
+      - DB_CONNECTION=mysql
+      - DB_HOST={{ service }}-db
+      - DB_PORT=3306
+      - DB_DATABASE={{ database_name }}
+      - DB_USERNAME={{ database_username }}
+      - DB_PASSWORD={{ database_password }}
+      - DB_SOCKET=
+      - MYSQL_USE_SSL=false
+      - MYSQL_SSL_VERIFY_SERVER_CERT=true
+      - MYSQL_SSL_CAPATH=/etc/ssl/certs/
+      - MYSQL_SSL_CA=
+      - MYSQL_SSL_CERT=
+      - MYSQL_SSL_KEY=
+      - MYSQL_SSL_CIPHER=
+      - CACHE_DRIVER=file
+      - SESSION_DRIVER=file
+      - REDIS_SCHEME=tcp
+      - REDIS_PATH=
+      - REDIS_HOST=127.0.0.1
+      - REDIS_PORT=6379
+      - REDIS_USERNAME=
+      - REDIS_PASSWORD=
+      - REDIS_DB="0"
+      - REDIS_CACHE_DB="1"
+      - COOKIE_PATH="/"
+      - COOKIE_DOMAIN=
+      - COOKIE_SECURE=false
+      - COOKIE_SAMESITE=lax
+      - MAIL_MAILER=log
+      - MAIL_HOST={{ mail_host|default("null", true)}}
+      - MAIL_PORT={{ mail_port|default(2525, true) }}
+      - MAIL_FROM={{ emailaddress }}
+      - MAIL_USERNAME={{ mail_username|default("null", true) }}
+      - MAIL_PASSWORD={{ mail_password|default("null", true) }}
+      - MAIL_ENCRYPTION={{ mail_encryption|default("null", true) }}
+      - MAIL_SENDMAIL_COMMAND=
+      - MAILGUN_DOMAIN=
+      - MAILGUN_SECRET=
+      - MAILGUN_ENDPOINT=api.mailgun.net
+      - MANDRILL_SECRET=
+      - SPARKPOST_SECRET=
+      - MAILERSEND_API_KEY=
+      - SEND_ERROR_MESSAGE=true
+      - SEND_REPORT_JOURNALS=true
+      - ENABLE_EXTERNAL_MAP=false
+      - ENABLE_EXCHANGE_RATES=false
+      - ENABLE_EXTERNAL_RATES=false
+      - MAP_DEFAULT_LAT=51.983333
+      - MAP_DEFAULT_LONG=5.916667
+      - MAP_DEFAULT_ZOOM=6
+      - VALID_URL_PROTOCOLS=
+      - AUTHENTICATION_GUARD=web
+      - AUTHENTICATION_GUARD_HEADER=REMOTE_USER
+      - AUTHENTICATION_GUARD_EMAIL=
+      - PASSPORT_PRIVATE_KEY=
+      - PASSPORT_PUBLIC_KEY=
+      - CUSTOM_LOGOUT_URL=
+      - DISABLE_FRAME_HEADER=false
+      - DISABLE_CSP_HEADER=false
+      - TRACKER_SITE_ID=
+      - TRACKER_URL=
+      - ALLOW_WEBHOOKS=false
+      - STATIC_CRON_TOKEN={{ static_cron_token }}
+      - DKR_BUILD_LOCALE=false
+      - DKR_CHECK_SQLITE=true
+      - APP_NAME=FireflyIII
+      - BROADCAST_DRIVER=log
+      - QUEUE_DRIVER=sync
+      - CACHE_PREFIX=firefly
+      - PUSHER_KEY=
+      - IPINFO_TOKEN=
+      - PUSHER_SECRET=
+      - PUSHER_ID=
+      - DEMO_USERNAME=
+      - DEMO_PASSWORD=
+      - USE_RUNNING_BALANCE=false
+      - FIREFLY_III_LAYOUT=v1
+      - APP_URL=https://{{ service }}.{{ domain }}
+    volumes:
+      - "{{ workdir }}/{{ service }}/upload:/var/www/html/storage/upload"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1024k"
+        max-file: "4"
+{% if not swarm %}
+    labels:
+      - APP={{ service }}
+      - traefik.enable=true
+      - traefik.http.routers.{{ service }}.rule=Host(`{{ service }}.{{ domain }}`)
+      - traefik.http.routers.{{ service }}.entrypoints=websecure
+      - traefik.http.routers.{{ service }}.tls=true
+{%   if letsencrypt %}
+      - traefik.http.routers.{{ service }}.tls.certresolver=le_resolver
+{%   endif %}
+      - traefik.http.routers.{{ service }}.service={{ service }}
+      - traefik.http.services.{{ service }}.loadbalancer.server.port={{ service_port }}
+      - traefik.http.services.{{ service }}.loadbalancer.sticky.cookie=true
+      - traefik.http.services.{{ service }}.loadbalancer.sticky.cookie.secure=true
+{%   if loadbalancer %}
+      - traefik.http.services.{{ service }}.loadbalancer.passhostheader=true
+{%   endif %}
+      - traefik.docker.network={{ application }}-network
+    restart: unless-stopped
+{% endif %}
+{% if swarm %}
+    deploy:
+      labels:
+        - APP={{ service }}
+        - traefik.enable=true
+        - traefik.http.routers.{{ service }}.rule=Host(`{{ service }}.{{ domain }}`)
+        - traefik.http.routers.{{ service }}.entrypoints=websecure
+        - traefik.http.routers.{{ service }}.tls=true
+{%   if letsencrypt %}
+        - traefik.http.routers.{{ service }}.tls.certresolver=le_resolver
+{%   endif %}
+        - traefik.http.routers.{{ service }}.service={{ service }}
+        - traefik.http.services.{{ service }}.loadbalancer.server.port={{ service_port }}
+        - traefik.http.services.{{ service }}.loadbalancer.sticky.cookie=true
+        - traefik.http.services.{{ service }}.loadbalancer.sticky.cookie.secure=true
+{%   if loadbalancer %}
+        - traefik.http.services.{{ service }}.loadbalancer.passhostheader=true
+{%   endif %}
+        - traefik.docker.network={{ application }}-network
+      # service restart policy
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+        window: 120s
+      # service update configuration
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: continue
+        monitor: 60s
+        max_failure_ratio: 0.3
+{% endif %}
+
+  {{ service }}-importer:
+    image: {{ service_importer_image }}:{{ service_importer_version }}
+    networks:
+      - {{ application }}-network
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ="{{ timezone }}"
+      - FIREFLY_III_URL=http://{{ service }}:8080
+      - VANITY_URL=https://{{ service }}.{{ domain }}
+      - FIREFLY_III_ACCESS_TOKEN={{ firefly_access_token|default("", true) }}
+      - FIREFLY_III_CLIENT_ID={{  firefly_client_id|default("", true) }}
+      - NORDIGEN_ID={{ nordigen_id|default("", true) }}
+      - NORDIGEN_KEY={{ nordigen_key|default("", true) }}
+      - NORDIGEN_SANDBOX=false
+      - RESPOND_TO_GOCARDLESS_LIMIT=wait
+      - GOCARDLESS_GET_ACCOUNT_DETAILS=false
+      - GOCARDLESS_GET_BALANCE_DETAILS=false
+      - SPECTRE_APP_ID={{ spectre_app_id|default("", true) }}
+      - SPECTRE_SECRET={{ spectre_secret|default("", true) }}
+      - USE_CACHE=false
+      - IGNORE_DUPLICATE_ERRORS=false
+      - IGNORE_NOT_FOUND_TRANSACTIONS=false
+      - AUTO_IMPORT_SECRET={{ auto_import_secret }}
+      - CAN_POST_AUTOIMPORT=true
+      - CAN_POST_FILES=true
+      - IMPORT_DIR_ALLOWLIST=
+      - FALLBACK_IN_DIR=false
+      - VERIFY_TLS_SECURITY=true
+      - JSON_CONFIGURATION_DIR=
+      - CONNECTION_TIMEOUT=31.41
+      - APP_ENV=local
+      - APP_DEBUG=false
+      - LOG_CHANNEL=stack
+      - LOG_RETURN_JSON=false
+      - LOG_LEVEL=debug
+      - TRUSTED_PROXIES=**
+      - ENABLE_MAIL_REPORT=false
+      - EXPECT_SECURE_URL=false
+      - MAIL_MAILER=
+      - MAIL_DESTINATION={{ emailaddress_destination }}
+      - MAIL_FROM={{ emailaddress }}
+      - MAIL_HOST={{ mail_host|default("null", true)}}
+      - MAIL_PORT={{ mail_port|default(2525, true) }}
+      - MAIL_USERNAME={{ mail_username|default("null", true) }}
+      - MAIL_PASSWORD={{ mail_password|default("null", true) }}
+      - MAIL_ENCRYPTION={{ mail_encryption|default("null", true) }}
+      - MAILGUN_DOMAIN=
+      - MAILGUN_SECRET=
+      - MAILGUN_ENDPOINT=
+      - POSTMARK_TOKEN=
+      - BROADCAST_DRIVER=log
+      - CACHE_DRIVER=file
+      - QUEUE_CONNECTION=sync
+      - SESSION_DRIVER=file
+      - SESSION_LIFETIME=120
+      - IS_EXTERNAL=false
+      - REDIS_HOST=127.0.0.1
+      - REDIS_PASSWORD="null"
+      - REDIS_PORT=6379
+      - REDIS_DB="0"
+      - REDIS_CACHE_DB="1"
+      - ASSET_URL=
+      - TRACKER_SITE_ID=
+      - TRACKER_URL=
+      - APP_NAME=DataImporter
+      - APP_URL=http://localhost
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1024k"
+        max-file: "4"
+{% if not swarm %}
+    labels:
+      - APP={{ service }}-importer
+      - traefik.enable=true
+      - traefik.http.routers.{{ service }}-import.rule=Host(`{{ service }}-import.{{ domain }}`)
+      - traefik.http.routers.{{ service }}-import.entrypoints=websecure
+      - traefik.http.routers.{{ service }}-import.tls=true
+{%   if letsencrypt %}
+      - traefik.http.routers.{{ service }}-import.tls.certresolver=le_resolver
+{%   endif %}
+      - traefik.http.routers.{{ service }}-import.service={{ service }}-import
+      - traefik.http.services.{{ service }}-import.loadbalancer.server.port={{ service_importer_port }}
+      - traefik.http.services.{{ service }}-import.loadbalancer.sticky.cookie=true
+      - traefik.http.services.{{ service }}-import.loadbalancer.sticky.cookie.secure=true
+{%   if loadbalancer %}
+      - traefik.http.services.{{ service }}-import.loadbalancer.passhostheader=true
+{%   endif %}
+      - traefik.docker.network={{ application }}-network
+    restart: unless-stopped
+{% endif %}
+{% if swarm %}
+    deploy:
+      labels:
+        - APP={{ service }}-import
+        - traefik.enable=true
+        - traefik.http.routers.{{ service }}-import.rule=Host(`{{ service }}-import.{{ domain }}`)
+        - traefik.http.routers.{{ service }}-import.entrypoints=websecure
+        - traefik.http.routers.{{ service }}-import.tls=true
+{%   if letsencrypt %}
+        - traefik.http.routers.{{ service }}-import.tls.certresolver=le_resolver
+{%   endif %}
+        - traefik.http.routers.{{ service }}-import.service={{ service }}-import
+        - traefik.http.services.{{ service }}-import.loadbalancer.server.port={{ service_port }}
+        - traefik.http.services.{{ service }}-import.loadbalancer.sticky.cookie=true
+        - traefik.http.services.{{ service }}-import.loadbalancer.sticky.cookie.secure=true
+{%   if loadbalancer %}
+        - traefik.http.services.{{ service }}-import.loadbalancer.passhostheader=true
+{%   endif %}
+        - traefik.docker.network={{ application }}-network
+      # service restart policy
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+        window: 120s
+      # service update configuration
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: continue
+        monitor: 60s
+        max_failure_ratio: 0.3
+{% endif %}
+
+
+  cron:
+    image: alpine
+    command: sh -c "echo \"0 3 * * * wget -qO- http://{{ service }}:{{ service_port }}/api/v1/cron/{{ static_cron_token }};echo\" | crontab - && crond -f -L /dev/stdout"
+    networks:
+      - {{ application }}-network
+{% if not swarm %}
+    restart: always
+{% endif %}
+{% if swarm %}
+    deploy:
+      # service restart policy
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+        window: 120s
+      # service update configuration
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: continue
+        monitor: 60s
+        max_failure_ratio: 0.3
+{% endif %}
+
+  {{ service }}-db:
+    image: {{ service_db_image }}:{{ service_db_version }}
+    networks:
+      - {{ application }}-network
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ="{{ timezone }}"
+      - MYSQL_RANDOM_ROOT_PASSWORD=yes
+      - MYSQL_USER={{ database_username }}
+      - MYSQL_PASSWORD={{ database_password }}
+      - MYSQL_DATABASE={{ database_name }}
+    volumes:
+      - "{{ workdir }}/{{ service }}/db:/var/lib/mysql"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1024k"
+        max-file: "4"
+{% if not swarm %}
+    restart: unless-stopped
+{% endif %}
+{% if swarm %}
+    deploy:
+      # service restart policy
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+        window: 120s
+      # service update configuration
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: continue
+        monitor: 60s
+        max_failure_ratio: 0.3
+{% endif %}
+
+networks:
+  {{ application }}-network:
+    external: true

@@ -1,0 +1,28 @@
+---
+# defaults file for fireflyiii
+workdir: "/docker"
+download_dir: "/downloads"
+timezone: "UTC"
+loadbalancer: false
+swarm: false
+
+# service defaults
+service: "firefly"
+service_version: "latest"
+service_port: "8080"
+service_image: "fireflyiii/core"
+
+service_importer_version: "latest"
+service_importer_port: "8080"
+service_importer_image: "fireflyiii/data-importer"
+
+service_db_version: "lts"
+service_db_image: "mariadb"
+
+# fireflyiii defaults
+emailaddress: "someone@example.com"
+
+# database defaults
+database_name: "firefly"
+database_username: "firefly"
+database_password: "firefly"
