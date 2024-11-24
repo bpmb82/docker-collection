@@ -46,10 +46,10 @@
     mode: 0644
 
 - name: Deploy {{ service }}
-  ansible.builtin.shell: docker-compose -f {{ workdir }}/{{ service }}/docker-compose.yml up -d
+  ansible.builtin.shell: docker compose -f {{ workdir }}/{{ service }}/docker-compose.yml up -d
 
 - name: Wait until {{ service }} is running
-  ansible.builtin.shell: docker inspect {{ service }}_{{service }}_1 | jq '.[] | .State.Status'
+  ansible.builtin.shell: docker inspect {{ service }}-{{service }}-1 | jq '.[] | .State.Status'
   register: service_running
   until: service_running.stdout == '"running"'
   retries: 40
