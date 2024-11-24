@@ -5,11 +5,6 @@
   ignore_errors: true
   register: docker_check
 
-- name: Check if we are part of a swarm
-  ansible.builtin.shell: "docker info | grep -c 'Swarm: active' || /bin/true"
-  register: docker_swarm_present
-  when: docker_check.failed == False
-
 - name: Install docker if OS is debian or redhat based
   block:
   - name: Fail if OS is not debian or redhat based
@@ -17,36 +12,52 @@
       msg: "This is not a Debian or RedHat based OS, please install Docker manually"
     when: ansible_facts['os_family'] != "Debian" and ansible_facts['os_family'] != "RedHat"
 
-  - name: Install required system packages for docker if OS is Debian based
-    ansible.builtin.apt: name={{ item }} state=latest update_cache=yes
-    loop: [ 'apt-transport-https', 'ca-certificates', 'curl', 'software-properties-common', 'python3-pip', 'python3-venv', 'python3-setuptools', 'wget' ]
+  - name: Install docker if OS is Debian based
+    block:
+    - name: Install required system packages for docker if OS is Debian based
+      ansible.builtin.apt: name={{ item }} state=latest update_cache=yes
+      loop: [ 'apt-transport-https', 'ca-certificates', 'curl', 'gnupg', 'software-properties-common', 'python3-pip', 'python3-venv', 'python3-setuptools', 'wget' ]
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Install keyrings
+      ansible.builtin.shell: install -m 0755 -d /etc/apt/keyrings
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Install GPG key
+      ansible.builtin.shell: curl -fsSL https://download.docker.com/linux/{{ ansible_facts['distribution'] | lower }}/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && chmod a+r /etc/apt/keyrings/docker.gpg
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Add docker repository
+      ansible.builtin.shell: echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/{{ ansible_facts['distribution'] | lower }} $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Install docker.io if OS is Debian
+      ansible.builtin.apt: name={{ item }} state=latest update_cache=yes
+      loop: [ 'docker-ce', 'docker-ce-cli', 'containerd.io', 'docker-buildx-plugin', 'docker-compose-plugin' ]
+      when: ansible_facts['os_family'] == "Debian"
     when: ansible_facts['os_family'] == "Debian"
+  
+  - name: Install docker if OS is RedHat
+    block:
+    - name: Install required system packages for docker if OS is RedHat based
+      ansible.builtin.yum: name={{ item }} state=latest
+      loop: [ 'ca-certificates', 'curl', 'python3-pip', 'python3-setuptools', 'wget' ]
+      when: ansible_facts['os_family'] == "RedHat"
 
-  - name: Install required system packages for docker if OS is RedHat based
-    ansible.builtin.yum: name={{ item }} state=latest
-    loop: [ 'ca-certificates', 'curl', 'python3-pip', 'python3-setuptools', 'wget' ]
-    when: ansible_facts['os_family'] == "RedHat"
+    - name: Add docker repo to yum
+      ansible.builtin.shell: dnf config-manager --add-repo=https://download.docker.com/linux/{{ ansible_facts['distribution']|lower }}/docker-ce.repo
+      when: ansible_facts['os_family'] == "RedHat"
 
-  - name: Install python docker libraries
-    ansible.builtin.command: pip3 install docker docker-compose
-
-  - name: Add docker repo to yum
-    ansible.builtin.shell: dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
-    when: ansible_facts['os_family'] == "RedHat"
-
-  - name: Install docker.io if OS is Debian
-    ansible.builtin.apt: name=docker.io state=latest update_cache=yes
-    when: ansible_facts['os_family'] == "Debian"
-
-  - name: Install docker engine if OS is RedHat
-    ansible.builtin.yum:
-      name: "{{ item }}"
-      state: present
-    loop: [ 'docker-ce', 'docker-ce-cli', 'containerd.io', 'docker-compose-plugin' ]
-    when: ansible_facts['os_family'] == "RedHat"
+    - name: Install docker engine if OS is RedHat
+      ansible.builtin.yum:
+        name: "{{ item }}"
+        state: present
+      loop: [ 'docker-ce', 'docker-ce-cli', 'containerd.io', 'docker-compose-plugin' ]
+      when: ansible_facts['os_family'] == "RedHat"
+    when: ansible_facts['os_family'] == "RedHat" or ansible_facts['os_family'] == "Debian"
 
   - name: Stop docker service
-    ansible.builtin.service: name=docker state=stopped
+    service: name=docker state=stopped
     when: usernamespaces is defined
 
   - name: Copy default docker daemon configuration
@@ -64,31 +75,26 @@
   - name: Start docker daemon
     ansible.builtin.service: name=docker state=started enabled=true
     when: usernamespaces is defined
-
-  - name: Gather facts so we can also access docker0
-    ansible.builtin.setup:
   
   when: docker_check.failed
 
-- name: Enable swarm on single host if swarm_mode is set and single_host == true
+- name: Debug
+  debug:
+    var: swarm
+
+- name: Debug2
+  debug:
+    var: single_host
+
+- name: Enable swarm on single host if swarm is set and single_host == true
   block:
     
     - name: Initialize docker swarm with advertise address
-      ansible.builtin.shell: docker swarm init --advertise-addr {{ advertise_address }} --listen-addr 0.0.0.0
-      when: advertise_address is defined
+      ansible.builtin.shell: docker swarm init # --advertise-addr {{ advertise_address }} --listen-addr 0.0.0.0
 
-    - name: Initialize docker swarm init without advertise address
-      ansible.builtin.shell: docker swarm init --advertise-addr 127.0.0.1 --listen-addr 0.0.0.0
-      when: advertise_address is not defined
+  when: swarm == true and single_host == true
 
-    - name: Save the advertise address if advertise_address was not set
-      ansible.builtin.shell: docker info | awk '/Node Address/{print $3}'
-      register: advertise_address
-      when: advertise_address is not defined
-
-  when: swarm_mode == true and single_host == true and docker_swarm_present.stdout != "1"
-
-- name: Enable swarm on multi hosts if swarm_mode is set and single_host == false
+- name: Enable swarm on multi hosts if swarm is set and single_host == false
   block:
 
     - name: Initialize docker swarm with advertise address on first node
@@ -106,7 +112,7 @@
 
     - name: Save the advertise address if advertise_address was not set
       ansible.builtin.shell: docker info | awk '/Node Address/{print $3}'
-      register: advertise_address
+      register: advertise_address_new
       when: advertise_address is not defined and inventory_hostname == primary_manager
 
     - name: Save the join token and advertise_address vars
@@ -117,20 +123,18 @@
 
     - name: Save the join token and advertise_address vars (with auto address)
       ansible.builtin.set_fact:
-        advertise_address: advertise_address.stdout
+        advertise_address: advertise_address_new.stdout
         manager_join_token: manager_join_token.stdout
       when: advertise_address is not defined and inventory_hostname == primary_manager
 
     - name: Join other hosts to the swarm, we add them as managers as well (using advertise_address)
-      ansible.builtin.shell: docker swarm join --token {{ hostvars[primary_manager]['manager_join_token'] }} {{ hostvars[primary_manager]['advertise_address'] }}
+      ansible.builtin.shell: docker swarm join --token {{ hostvars[primary_manager]['manager_join_token'] }} {{ advertise_address }}
       when: inventory_hostname != primary_manager
 
-  when: swarm_mode == true and single_host == false and docker_swarm_present.stdout != "1"
+  when: swarm == true and single_host == false
 
 - name: Stop docker service
-  ansible.builtin.service: name=docker state=stopped
-  when: docker_check.failed == True
+  service: name=docker state=stopped
 
 - name: Start docker daemon
   ansible.builtin.service: name=docker state=started enabled=true
-  when: docker_check.failed == True
