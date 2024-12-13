@@ -1,0 +1,13 @@
+---
+# defaults file for actualbudget
+workdir: "/docker"
+download_dir: "/downloads"
+timezone: "UTC"
+loadbalancer: false
+swarm: false
+
+# service defaults
+service: "actualbudget"
+service_version: "latest"
+service_port: "5006"
+service_image: "actualbudget/actual-server"

@@ -41,3 +41,5 @@
       when: slskd == true
     - role: fireflyiii
       when: fireflyiii == true
+    - role: actualbudget
+      when: actualbudget == true
