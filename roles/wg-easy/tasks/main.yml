@@ -7,6 +7,9 @@
     state: directory
     mode: 0755
 
+- name: Make sure ip_tables is ready to go
+  ansible.builtin.shell: modprobe ip_tables
+
 - name: Copy {{ service }} docker-compose jinja template
   ansible.builtin.template:
     src: templates/docker-compose.yml.j2
