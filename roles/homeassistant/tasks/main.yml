@@ -82,6 +82,6 @@
         dest: "{{ workdir }}/{{ service }}/config/configuration.yaml"
 
     - name: Restart {{ service }}
-      ansible.builtin.shell: docker restart {{ service }}_{{ service }}_1
+      ansible.builtin.shell: docker restart {{ service }}-{{ service }}-1
 
   when: service_config_edit == true
