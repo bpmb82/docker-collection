@@ -8,7 +8,7 @@
     mode: 0755
 
 - name: Run the HACS script
-  ansible.builtin.shell: wget -O - https://get.hacs.xyz | bash -
+  ansible.builtin.shell: cd {{ workdir }}/{{ service }}/config && wget -O - https://get.hacs.xyz | bash -
   when: hacs == true
 
 - name: Create host side configuration for Wake On LAN
@@ -19,7 +19,7 @@
       when: ansible_facts['os_family'] == "Debian"
 
     - name: Install wakeonlan on the host if OS is RedHat based
-      ansible.builtin.yum: name=wakeonlan state=latest
+      ansible.builtin.yum: name=wol state=latest
       when: ansible_facts['os_family'] == "RedHat"
 
     - name: Create the named pipe
