@@ -13,23 +13,23 @@
 
 {% if local_host %}
 [http.routers]
-{%   for service in local_host %}
-  [http.routers.{{ service }}]
-    rule="Host(`{{ service }}.{{ domain }}`)"
+{%   for service in local_hosts %}
+  [http.routers.{{ service.name }}]
+    rule="Host(`{{ service.name }}.{{ domain }}`)"
     entrypoints="websecure"
-    service="{{ service }}"
+    service="{{ service.name }}"
 {%     if letsencrypt %}
-    [http.routers.{{ service }}.tls]
+    [http.routers.{{ service.name }}.tls]
       certresolver="le_resolver"
 {%     else %}
     tls=true
 {%     endif %}
 
 [http.services]
-  [http.services.{{ service }}]
-    [http.services.{{ service }}.loadbalancer.sticky.cookie]
+  [http.services.{{ service.name }}]
+    [http.services.{{ service.name }}.loadbalancer.sticky.cookie]
       secure=true
-    [[http.services.{{service }}.loadbalancer.servers]]
-      url="http://{{ local_host[service].address }}:{{ local_host[service].port }}"
+    [[http.services.{{service.name }}.loadbalancer.servers]]
+      url="{{ service.scheme }}://{{ service.address }}:{{ service.port }}"
 {%   endfor %}
 {% endif %}
