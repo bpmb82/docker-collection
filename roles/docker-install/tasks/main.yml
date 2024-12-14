@@ -44,7 +44,7 @@
 
     - name: Install required system packages for docker if OS is RedHat based
       ansible.builtin.yum: name={{ item }} state=latest
-      loop: [ 'ca-certificates', 'curl', 'python3-pip', 'python3-setuptools', 'wget' ]
+      loop: [ 'ca-certificates', 'curl', 'python3-pip', 'python3-setuptools', 'wget', 'dnf-plugins-core' ]
 
     - name: Add docker repo to yum
       ansible.builtin.shell: dnf config-manager --add-repo https://download.docker.com/linux/{{ ansible_facts['distribution']|lower }}/docker-ce.repo
