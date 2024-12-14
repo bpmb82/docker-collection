@@ -22,6 +22,10 @@
       ansible.builtin.yum: name=wol state=latest
       when: ansible_facts['os_family'] == "RedHat"
 
+    - name: Remove named pipe if it exists
+      ansible.builtin.shell: rm -f {{ workdir }}/{{ service }}/config/wolpipe
+      ignore_errors: true
+
     - name: Create the named pipe
       ansible.builtin.shell: mkfifo {{ workdir }}/{{ service }}/config/wolpipe
 
