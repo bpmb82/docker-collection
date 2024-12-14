@@ -40,7 +40,7 @@
   - name: Install docker if OS is RedHat
     block:
     - name: Install dnf python library
-      ansible.builtin.shell: pip3 install python3-libdnf5
+      ansible.builtin.shell: dnf install -y python3-libdnf5
 
     - name: Install required system packages for docker if OS is RedHat based
       ansible.builtin.yum: name={{ item }} state=latest
