@@ -85,6 +85,8 @@ services:
 {% if not letsencrypt %}
       - "{{ workdir }}/traefik/certificate.key:/certificate.key"
       - "{{ workdir }}/traefik/certificate.pem:/certificate.pem"
+{% endif %}
+{% if not letsencrypt or local_host %}
       - "{{ workdir }}/traefik/traefik_dynamic.toml:/etc/traefik/traefik_dynamic.toml"
 {% endif %}
 {% if letsencrypt %}

@@ -3,8 +3,6 @@ Description=Listen for wake-on-lan from docker via pipe
 
 [Service]
 Restart=always
-User=nobody
-Group=nogroup
 {% if ansible_facts['os_family'] == 'Debian' %}
 ExecStart=/usr/bin/wakeonlan -f {{ workdir }}/{{ service }}/config/wolpipe
 {% elif ansible_facts['os_family'] == 'RedHat' %}

@@ -89,7 +89,7 @@
     src: templates/traefik_dynamic.toml.j2
     dest: "{{ workdir }}/traefik/traefik_dynamic.toml"
     mode: 0644
-  when: letsencrypt == false
+  when: letsencrypt == false or local_host == true
 
 - name: Check if docker network exists
   ansible.builtin.shell: docker network ls | grep -c "{{ application }}-network" || /bin/true
