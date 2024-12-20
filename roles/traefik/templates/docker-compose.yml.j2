@@ -39,7 +39,7 @@ services:
       - --entrypoints.web.http.redirections.entryPoint.to=websecure
       - --entrypoints.web.http.redirections.entryPoint.scheme=https
       - --entrypoints.websecure.address=:443
-{% if (not letsencrypt) or (homeassistant) %}
+{% if (not letsencrypt) or (local_host) %}
       - --providers.file.filename=/etc/traefik/traefik_dynamic.toml
       - --providers.file.watch=true
 {% endif %}
@@ -86,7 +86,7 @@ services:
       - "{{ workdir }}/traefik/certificate.key:/certificate.key"
       - "{{ workdir }}/traefik/certificate.pem:/certificate.pem"
 {% endif %}
-{% if not letsencrypt or local_host %}
+{% if (not letsencrypt) or (local_host) %}
       - "{{ workdir }}/traefik/traefik_dynamic.toml:/etc/traefik/traefik_dynamic.toml"
 {% endif %}
 {% if letsencrypt %}

@@ -25,10 +25,17 @@
     tls=true
 {%     endif %}
 
+[http.serversTransports.external]
+  insecureSkipVerify = true
+
 [http.services]
   [http.services.{{ service.name }}]
     [http.services.{{ service.name }}.loadbalancer.sticky.cookie]
       secure=true
+{%     if service.scheme == "https" %}
+    [http.services.{{ service.name }}.loadbalancer]
+      serversTransport = "external"
+{%     endif %}
     [[http.services.{{service.name }}.loadbalancer.servers]]
       url="{{ service.scheme }}://{{ service.address }}:{{ service.port }}"
 {%   endfor %}
