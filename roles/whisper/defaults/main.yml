@@ -1,0 +1,17 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for whisper
+workdir: "/docker"
+timezone: "UTC"
+loadbalancer: false
+swarm: false
+
+# service defaults
+service: "whisper"
+service_version: "latest"
+service_port: "10300"
+service_image: "lscr.io/linuxserver/faster-whisper"
+
+whisper_language: "en"
+whisper_model: "tiny-int8"
+whisper_beam: 1
