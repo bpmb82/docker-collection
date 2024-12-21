@@ -10,7 +10,7 @@ swarm: false
 service: "piper"
 service_version: "latest"
 service_port: "10200"
-service_image: "lscr.io/linuxserver/faster-whisper"
+service_image: "lscr.io/linuxserver/piper"
 
 piper_voice: "en_US-lessac-medium"
 piper_length: "1.0"
