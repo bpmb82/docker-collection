@@ -1,0 +1,14 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for sql-backup
+workdir: "/docker"
+timezone: "UTC"
+swarm: false
+
+# service defaults
+service: "sql-backup"
+service_version: "latest"
+service_image: "bpmbee/sql-backup"
+
+backupdir: "/backup"
+interval: "24"
