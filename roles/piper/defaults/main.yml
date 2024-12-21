@@ -1,0 +1,20 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for piper
+workdir: "/docker"
+timezone: "UTC"
+loadbalancer: false
+swarm: false
+
+# service defaults
+service: "piper"
+service_version: "latest"
+service_port: "10200"
+service_image: "lscr.io/linuxserver/piper"
+
+piper_voice: "en_US-lessac-medium"
+piper_length: "1.0"
+piper_noise: "0.667"
+piper_noisew: "0.333"
+piper_speaker: "0"
+piper_procs: "1"

@@ -41,3 +41,7 @@
       when: slskd == true
     - role: fireflyiii
       when: fireflyiii == true
+    - role: whisper
+      when: whisper == true
+    - role: piper
+      when: piper == true

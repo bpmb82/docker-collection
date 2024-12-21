@@ -6,7 +6,7 @@ Restart=always
 {% if ansible_facts['os_family'] == 'Debian' %}
 ExecStart=/usr/bin/wakeonlan -f {{ workdir }}/{{ service }}/config/wolpipe
 {% elif ansible_facts['os_family'] == 'RedHat' %}
-ExecStart=/usr/bin/wol -f {{ workdir }}/{{ service }}/config/wolpipe
+ExecStart=bash -c "ether-wake $$(<{{ workdir }}/{{ service }}/config/wolpipe)"
 {% endif %}
 [Install]
 WantedBy=multi-user.target

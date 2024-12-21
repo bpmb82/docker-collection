@@ -136,6 +136,11 @@
 
 - name: Stop docker service
   service: name=docker state=stopped
+  when: docker_check.failed
 
 - name: Start docker daemon
   ansible.builtin.service: name=docker state=started enabled=true
+  when: docker_check.failed
+
+- name: Rerun gather_facts
+  ansible.builtin.gather_facts:
