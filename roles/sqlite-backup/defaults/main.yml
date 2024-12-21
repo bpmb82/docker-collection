@@ -1,0 +1,14 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for sqlite-backup
+workdir: "/docker"
+timezone: "UTC"
+swarm: false
+
+# service defaults
+service: "sqlite-backup"
+service_version: "latest"
+service_image: "bpmbee/sqlite-backup"
+
+backupdir: "/backup"
+interval: "24"
