@@ -45,5 +45,5 @@
       when: whisper == true
     - role: piper
       when: piper == true
-    - role: sql-backup
-      when: sql_backup == true
+    - role: sqlite-backup
+      when: sqlite_backup == true
