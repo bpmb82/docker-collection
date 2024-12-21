@@ -46,4 +46,4 @@
     - role: piper
       when: piper == true
     - role: sql-backup
-      when: sql-backup == true
+      when: sql_backup == true
