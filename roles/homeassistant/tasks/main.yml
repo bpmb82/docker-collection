@@ -18,8 +18,8 @@
       ansible.builtin.apt: name=wakeonlan state=latest update_cache=yes
       when: ansible_facts['os_family'] == "Debian"
 
-    - name: Install wakeonlan on the host if OS is RedHat based
-      ansible.builtin.yum: name=wol state=latest
+    - name: Install ether-wake on the host if OS is RedHat based
+      ansible.builtin.yum: name=net-tools state=latest
       when: ansible_facts['os_family'] == "RedHat"
 
     - name: Remove named pipe if it exists
@@ -36,7 +36,7 @@
       ansible.builtin.template:
         src: templates/docker-wol.service.j2
         dest: /etc/systemd/system/docker-wol.service
-        mode: 0644
+        mode: 0644 
 
     - name: Start docker-wol daemon
       ansible.builtin.service: name=docker-wol state=started enabled=true
