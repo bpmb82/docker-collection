@@ -7,6 +7,8 @@ services:
     networks:
       - {{ application }}-network
     environment:
+      - PUID={{ git_user.uid }}
+      - PGID={{ git_user.group }}
       - GITEA__database__DB_TYPE=postgres
       - GITEA__database__HOST=giteadb:5432
       - GITEA__database__NAME={{ database_name }}
