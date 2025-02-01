@@ -1,0 +1,20 @@
+---
+# defaults file for gitea
+workdir: "/docker"
+download_dir: "/downloads"
+timezone: "UTC"
+loadbalancer: false
+swarm: false
+
+# service defaults
+service: "gitea"
+service_version: "1.23.1-rootless"
+service_port: "3000"
+service_image: "gitea/gitea"
+
+database_version: "14"
+database_name: "gitea"
+database_user: "gitea"
+database_password: "gitea"
+
+ssh_passthrough: true

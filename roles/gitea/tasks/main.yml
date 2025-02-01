@@ -1,0 +1,85 @@
+---
+# tasks file for gitea
+- name: Create config and database folder
+  ansible.builtin.file:
+    path: "{{ workdir }}/{{ service }}/{{ item }}"
+    recurse: true
+    state: directory
+    mode: '0755'
+  loop: ["config", "database"]
+
+- name: Create data folder
+  ansible.builtin.file:
+    path: "{{ download_dir }}/{{ service }}/data"
+    recurse: true
+    state: directory
+    mode: '0755'
+
+- name: Copy {{ service }} docker-compose jinja template
+  ansible.builtin.template:
+    src: templates/docker-compose.yml.j2
+    dest: "{{ workdir }}/{{ service }}/docker-compose.yml"
+    mode: '0644'
+
+- name: Configure SSH container passthrough
+  when: ssh_passthrough == true
+  block:
+
+    - name: Copy gitea-shell script
+      ansible.builtin.template:
+        src: templates/gitea-shell.j2
+        dest: /usr/local/bin/gitea-shell
+        mode: '0755'
+
+    - name: Create user 'git' and add to docker group
+      ansible.builtin.user:
+        name: git
+        shell: /usr/local/bin/gitea-shell
+        create_home: false
+        groups: docker
+        append: yes
+
+    - name: Update sshd config
+      ansible.builtin.blockinfile:
+        path: /etc/ssh/sshd_config
+        append_newline: true
+        prepend_newline: true
+        block: |
+          Match User git
+            AuthorizedKeysCommandUser git
+            AuthorizedKeysCommand /usr/bin/docker exec -i $(docker ps | awk '/{{ service }}/{print $NF}' | grep -v "giteadb") /usr/local/bin/gitea keys -e git -u %u -t %t -k %k
+
+    - name: Restart sshd
+      ansible.builtin.service:
+        name: sshd
+        state: restarted
+
+- name: Deploy {{ service }} if swarm mode is enabled
+  block:
+      
+    - name: Deploy {{ service }}
+      ansible.builtin.shell: docker stack deploy -c {{ workdir }}/{{ service }}/docker-compose.yml {{ service }}
+
+    - name: Wait until {{ service }} is running
+      ansible.builtin.shell: docker stack services --filter name={{ service }}_{{ service }} {{ service }} | grep -c 1/1 || /bin/true
+      register: service_running
+      until: service_running.stdout == "1"
+      retries: 40
+      delay: 20
+
+  when: swarm == true
+
+- name: Deploy {{ service }}
+  block:
+
+    - name: Deploy {{ service }}
+      ansible.builtin.shell: docker compose -f {{ workdir }}/{{ service }}/docker-compose.yml up -d
+
+    - name: Wait until {{ service }} is running
+      ansible.builtin.shell: docker inspect {{ service }}-{{service }}-1 | jq '.[] | .State.Status'
+      register: service_running
+      until: service_running.stdout == '"running"'
+      retries: 40
+      delay: 20
+
+  when: swarm == false
