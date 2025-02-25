@@ -7,7 +7,7 @@
   register: git_user
 
 - name: Create SSH keys for user git
-  ansible.builtin.shell: sudo -u git ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N "" -C "Gitea Host Key"
+  ansible.builtin.shell: sudo -u git ssh-keygen -t ed25519 -f /home/git/.ssh/id_ed25519 -N "" -C "Gitea Host Key"
 
 - name: Add SSH keys to authorized_keys
   ansible.builtin.shell: sudo -u git cat /home/git/.ssh/id_rsa.pub | sudo -u git tee -a /home/git/.ssh/authorized_keys
