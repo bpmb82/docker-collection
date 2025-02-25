@@ -10,7 +10,7 @@
   ansible.builtin.shell: sudo -u git ssh-keygen -t ed25519 -f /home/git/.ssh/id_ed25519 -N "" -C "Gitea Host Key"
 
 - name: Add SSH keys to authorized_keys
-  ansible.builtin.shell: sudo -u git cat /home/git/.ssh/id_rsa.pub | sudo -u git tee -a /home/git/.ssh/authorized_keys
+  ansible.builtin.shell: sudo -u git cat /home/git/.ssh/id_ed25519.pub | sudo -u git tee -a /home/git/.ssh/authorized_keys
 
 - name: Set permissions on file
   ansible.builtin.shell: sudo -u git chmod 600 /home/git/.ssh/authorized_keys
