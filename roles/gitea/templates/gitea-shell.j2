@@ -1,5 +1,0 @@
-#!/bin/bash
-
-GITEA_CONTAINER=$(docker ps | awk '/{{ service }}/{print $NF}' | grep -v "giteadb")
-
-/usr/bin/docker exec -i --env SSH_ORIGINAL_COMMAND="$SSH_ORIGINAL_COMMAND" ${GITEA_CONTAINER} sh "$@"

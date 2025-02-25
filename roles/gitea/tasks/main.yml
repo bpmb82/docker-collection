@@ -1,11 +1,33 @@
 ---
 # tasks file for gitea
+- name: Create user 'git' and add to docker group
+  ansible.builtin.user:
+    name: git
+    create_home: true
+  register: git_user
+
+- name: Create SSH keys for user git
+  ansible.builtin.shell: sudo -u git ssh-keygen -t ecdsa -b 4096 -C "Gitea Host Key"
+
+- name: Add SSH keys to authorized_keys
+  ansible.builtin.shell: sudo -u git cat /home/git/.ssh/id_rsa.pub | sudo -u git tee -a /home/git/.ssh/authorized_keys
+
+- name: Set permissions on file
+  ansible.builtin.shell: sudo -u git chmod 600 /home/git/.ssh/authorized_keys
+
+- name: Create gitea script on host
+  ansible.builtin.copy:
+    src: templates/gitea
+    dest: /usr/local/bin/gitea
+    mode: '0755'
+
 - name: Create config and database folder
   ansible.builtin.file:
     path: "{{ workdir }}/{{ service }}/{{ item }}"
     recurse: true
     state: directory
     mode: '0777'
+    owner: git
   loop: ["config", "database"]
 
 - name: Create data folder
@@ -14,40 +36,7 @@
     recurse: true
     state: directory
     mode: '0777'
-
-- name: Configure SSH container passthrough
-  when: ssh_passthrough == true
-  block:
-
-    - name: Copy gitea-shell script
-      ansible.builtin.template:
-        src: templates/gitea-shell.j2
-        dest: /usr/local/bin/gitea-shell
-        mode: '0755'
-
-    - name: Create user 'git' and add to docker group
-      ansible.builtin.user:
-        name: git
-        shell: /usr/local/bin/gitea-shell
-        create_home: false
-        groups: docker
-        append: true
-      register: git_user
-
-    - name: Update sshd config
-      ansible.builtin.blockinfile:
-        path: /etc/ssh/sshd_config
-        append_newline: true
-        prepend_newline: true
-        block: |
-          Match User git
-            AuthorizedKeysCommandUser git
-            AuthorizedKeysCommand /usr/bin/docker exec -i $(docker ps | sed "s/.*[ ]\(.*\)$/\1/" | grep {{ service }} | grep -v "giteadb") /usr/local/bin/gitea keys -e git -u %u -t %t -k %k
-
-    - name: Restart sshd
-      ansible.builtin.service:
-        name: sshd
-        state: restarted
+    owner: git
 
 - name: Copy {{ service }} docker-compose jinja template
   ansible.builtin.template:

@@ -16,17 +16,16 @@ services:
       - GITEA__database__PASSWD={{ database_password }}
       - TZ="{{ timezone }}"
     volumes:
+      - "/home/git/.ssh:/data/git/.ssh"
       - "{{ workdir }}/{{ service }}/config:/etc/gitea"
-      - "{{ download_dir }}/{{ service }}/data://var/lib/gitea"
+      - "{{ download_dir }}/{{ service }}/data:/var/lib/gitea"
     logging:
       driver: "json-file"
       options:
         max-size: "1024k"
         max-file: "4"
-{% if not ssh_passthrough %}
     ports:
-      - 2222:2222
-{% endif %}
+      - "127.0.0.1:2222:2222"
 {% if not swarm %}
     labels:
       - APP={{ service }}
