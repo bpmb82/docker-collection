@@ -7,8 +7,9 @@ services:
     networks:
       - {{ application }}-network
     environment:
-      - PUID={{ git_user.uid }}
-      - PGID={{ git_user.group }}
+      - USER=git
+      - USER_UID={{ git_user.uid }}
+      - USER_GID={{ git_user.group }}
       - GITEA__database__DB_TYPE=postgres
       - GITEA__database__HOST=giteadb:5432
       - GITEA__database__NAME={{ database_name }}
@@ -25,7 +26,7 @@ services:
         max-size: "1024k"
         max-file: "4"
     ports:
-      - "127.0.0.1:2222:2222"
+      - "127.0.0.1:2222:22"
 {% if not swarm %}
     labels:
       - APP={{ service }}
