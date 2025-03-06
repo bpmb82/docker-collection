@@ -1,6 +1,6 @@
 ---
 # tasks file for gitea
-- name: Create user 'git' and add to docker group
+- name: Create user 'git'
   ansible.builtin.user:
     name: git
     create_home: true
