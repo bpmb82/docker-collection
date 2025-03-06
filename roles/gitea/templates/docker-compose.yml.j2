@@ -1,0 +1,124 @@
+# This file is managed by ansible, do not modify
+#
+services:
+
+  {{ service }}:
+    image: {{ service_image }}:{{ service_version }}
+    networks:
+      - {{ application }}-network
+    environment:
+      - USER=git
+      - USER_UID={{ git_user.uid }}
+      - USER_GID={{ git_user.group }}
+      - GITEA__database__DB_TYPE=postgres
+      - GITEA__database__HOST=giteadb:5432
+      - GITEA__database__NAME={{ database_name }}
+      - GITEA__database__USER={{ database_user }}
+      - GITEA__database__PASSWD={{ database_password }}
+      - TZ="{{ timezone }}"
+    volumes:
+      - "/home/git/.ssh:/data/git/.ssh"
+      - "{{ workdir }}/{{ service }}/config:/etc/gitea"
+      - "{{ download_dir }}/{{ service }}/data:/var/lib/gitea"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1024k"
+        max-file: "4"
+    ports:
+      - "127.0.0.1:2222:22"
+{% if not swarm %}
+    labels:
+      - APP={{ service }}
+      - traefik.enable=true
+      - traefik.http.routers.{{ service }}.rule=Host(`{{ service }}.{{ domain }}`)
+      - traefik.http.routers.{{ service }}.entrypoints=websecure
+      - traefik.http.routers.{{ service }}.tls=true
+{%   if letsencrypt %}
+      - traefik.http.routers.{{ service }}.tls.certresolver=le_resolver
+{%   endif %}
+      - traefik.http.routers.{{ service }}.service={{ service }}
+      - traefik.http.services.{{ service }}.loadbalancer.server.port={{ service_port }}
+      - traefik.http.services.{{ service }}.loadbalancer.sticky.cookie=true
+      - traefik.http.services.{{ service }}.loadbalancer.sticky.cookie.secure=true
+{%   if loadbalancer %}
+      - traefik.http.services.{{ service }}.loadbalancer.passhostheader=true
+{%   endif %}
+      - traefik.docker.network={{ application }}-network
+    restart: unless-stopped
+{% endif %}
+{% if swarm %}
+    deploy:
+      labels:
+        - APP={{ service }}
+        - traefik.enable=true
+        - traefik.http.routers.{{ service }}.rule=Host(`{{ service }}.{{ domain }}`)
+        - traefik.http.routers.{{ service }}.entrypoints=websecure
+        - traefik.http.routers.{{ service }}.tls=true
+{%   if letsencrypt %}
+        - traefik.http.routers.{{ service }}.tls.certresolver=le_resolver
+{%   endif %}
+        - traefik.http.routers.{{ service }}.service={{ service }}
+        - traefik.http.services.{{ service }}.loadbalancer.server.port={{ service_port }}
+        - traefik.http.services.{{ service }}.loadbalancer.sticky.cookie=true
+        - traefik.http.services.{{ service }}.loadbalancer.sticky.cookie.secure=true
+{%   if loadbalancer %}
+        - traefik.http.services.{{ service }}.loadbalancer.passhostheader=true
+{%   endif %}
+        - traefik.docker.network={{ application }}-network
+      # service restart policy
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+        window: 120s
+      # service update configuration
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: continue
+        monitor: 60s
+        max_failure_ratio: 0.3
+{% endif %}
+
+  giteadb:
+    image: postgres:{{ database_version }}
+    networks:
+      - {{ application }}-network
+    environment:
+      - POSTGRES_USER={{ database_user }}
+      - POSTGRES_PASSWORD={{ database_password }}
+      - POSTGRES_DB={{ database_name }}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+{% if not swarm %}
+    labels:
+      - APP={{ service }}
+    restart: unless-stopped
+{% endif %}
+{% if swarm %}
+    deploy:
+      labels:
+        - APP={{ service }}
+      # service restart policy
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+        window: 120s
+      # service update configuration
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: continue
+        monitor: 60s
+        max_failure_ratio: 0.3
+{% endif %}
+
+
+networks:
+  {{ application }}-network:
+    external: true
+
+volumes:
+  postgres:
