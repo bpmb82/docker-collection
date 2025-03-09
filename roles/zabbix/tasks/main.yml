@@ -1,21 +1,21 @@
 ---
-# tasks file for whisper
+# tasks file for zabbix
 - name: Create folders
   ansible.builtin.file:
-    path: "{{ workdir }}/{{ service }}/config"
+    path: "{{ workdir }}/{{ service }}"
     recurse: true
     state: directory
-    mode: 0755
+    mode: 755
 
 - name: Copy {{ service }} docker-compose jinja template
   ansible.builtin.template:
     src: templates/docker-compose.yml.j2
     dest: "{{ workdir }}/{{ service }}/docker-compose.yml"
-    mode: 0644
+    mode: 644
 
 - name: Deploy {{ service }} if swarm mode is enabled
   block:
-      
+
     - name: Deploy {{ service }}
       ansible.builtin.shell: docker stack deploy -c {{ workdir }}/{{ service }}/docker-compose.yml {{ service }}
 

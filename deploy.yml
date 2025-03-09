@@ -49,3 +49,5 @@
       when: sqlite_backup == true
     - role: gitea
       when: gitea == true
+    - role: zabbix
+      when: zabbix == true
