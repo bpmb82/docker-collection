@@ -5,11 +5,10 @@ timezone: "UTC"
 loadbalancer: false
 swarm: false
 
-
 service: "zabbix"
 service_version: "7.0-alpine-latest"
 service_port: "8080"
 
-postgresversion: "15"
+postgres_version: "15"
 postgres_user: "zabbix"
 postgres_password: "zabbix"
