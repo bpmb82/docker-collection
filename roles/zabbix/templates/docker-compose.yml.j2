@@ -41,7 +41,7 @@ services:
   zabbix-frontend:
     image: zabbix/zabbix-web-nginx-pgsql:{{ service_version }}
     networks:
-      - {{ application_network }}
+      - {{ application }}-network
     environment:
       DB_SERVER_HOST: postgres
       POSTGRES_USER: {{ postgres_user }}
@@ -109,7 +109,7 @@ services:
   postgres:
     image: postgres:{{ postgres_version }}
     networks:
-      - {{ application_network }}
+      - {{ application }}-network
     volumes:
       - postgres:/var/lib/postgresql/data
     environment:
