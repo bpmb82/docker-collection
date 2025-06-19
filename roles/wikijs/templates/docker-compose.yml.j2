@@ -1,0 +1,110 @@
+services:
+
+  wiki:
+    image: ghcr.io/requarks/wiki:{{ service_version }}
+    networks:
+      - {{ application }}-network
+    environment:
+      DB_TYPE: postgres
+      DB_HOST: postgres-wiki
+      DB_PORT: 5432
+      DB_USER: {{ postgres_user }}
+      DB_PASS: {{ postgres_password }}
+      DB_NAME: wiki
+    depends_on:
+      - postgres-wiki
+{% if not swarm %}
+    labels:
+      - APP={{ service }}
+      - traefik.enable=true
+      - traefik.http.routers.{{ service }}.rule=Host(`{{ service }}.{{ domain }}`)
+      - traefik.http.routers.{{ service }}.entrypoints=websecure
+      - traefik.http.routers.{{ service }}.tls=true
+{%   if letsencrypt %}
+      - traefik.http.routers.{{ service }}.tls.certresolver=le_resolver
+{%   endif %}
+      - traefik.http.routers.{{ service }}.service={{ service }}
+      - traefik.http.services.{{ service }}.loadbalancer.server.port={{ service_port }}
+      - traefik.http.services.{{ service }}.loadbalancer.sticky.cookie=true
+      - traefik.http.services.{{ service }}.loadbalancer.sticky.cookie.secure=true
+{%   if loadbalancer %}
+      - traefik.http.services.{{ service }}.loadbalancer.passhostheader=true
+{%   endif %}
+      - traefik.docker.network={{ application }}-network
+    restart: unless-stopped
+{% endif %}
+{% if swarm %}
+    deploy:
+      labels:
+        - APP={{ service }}
+        - traefik.enable=true
+        - traefik.http.routers.{{ service }}.rule=Host(`{{ service }}.{{ domain }}`)
+        - traefik.http.routers.{{ service }}.entrypoints=websecure
+        - traefik.http.routers.{{ service }}.tls=true
+{%   if letsencrypt %}
+        - traefik.http.routers.{{ service }}.tls.certresolver=le_resolver
+{%   endif %}
+        - traefik.http.routers.{{ service }}.service={{ service }}
+        - traefik.http.services.{{ service }}.loadbalancer.server.port={{ service_port }}
+        - traefik.http.services.{{ service }}.loadbalancer.sticky.cookie=true
+        - traefik.http.services.{{ service }}.loadbalancer.sticky.cookie.secure=true
+{%   if loadbalancer %}
+        - traefik.http.services.{{ service }}.loadbalancer.passhostheader=true
+{%   endif %}
+        - traefik.docker.network={{ application }}-network
+      # service restart policy
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+        window: 120s
+      # service update configuration
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: continue
+        monitor: 60s
+        max_failure_ratio: 0.3
+{% endif %}
+
+  postgres-wiki:
+    image: postgres:{{ postgres_version }}
+    networks:
+      - {{ application }}-network
+    volumes:
+      - postgres-wiki:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: {{ postgres_user }}
+      POSTGRES_PASSWORD: {{ postgres_password }}
+      POSTGRES_DB: wiki
+      PG_DATA: /var/lib/postgresql/data/pgdata
+{% if not swarm %}
+    labels:
+      - APP=postgres
+    restart: unless-stopped
+{% endif %}
+{% if swarm %}
+    deploy:
+      labels:
+        - APP=postgres
+      # service restart policy
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+        window: 120s
+      # service update configuration
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: continue
+        monitor: 60s
+        max_failure_ratio: 0.3
+{% endif %}
+
+volumes:
+  postgres-wiki: {}
+
+networks:
+  {{ application }}-network:
+    external: true

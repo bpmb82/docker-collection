@@ -53,3 +53,5 @@
       when: zabbix == true
     - role: grafana
       when: grafana == true
+    - role: wikijs
+      when: wikijs == true
