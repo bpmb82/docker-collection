@@ -1,0 +1,12 @@
+---
+# defaults file for grafana
+workdir: "/docker"
+timezone: "UTC"
+loadbalancer: false
+swarm: false
+
+# service defaults
+service: "grafana"
+service_version: "11.5.2"
+service_port: "3000"
+service_image: "grafana/grafana-oss"

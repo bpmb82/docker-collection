@@ -51,3 +51,5 @@
       when: gitea == true
     - role: zabbix
       when: zabbix == true
+    - role: grafana
+      when: grafana == true

@@ -1,0 +1,44 @@
+---
+# tasks file for grafana
+- name: Create folders
+  ansible.builtin.file:
+    path: "{{ workdir }}/{{ service }}"
+    recurse: true
+    state: directory
+    mode: 0755
+
+- name: Copy {{ service }} docker-compose jinja template
+  ansible.builtin.template:
+    src: templates/docker-compose.yml.j2
+    dest: "{{ workdir }}/{{ service }}/docker-compose.yml"
+    mode: 0644
+
+- name: Deploy {{ service }} if swarm mode is enabled
+  block:
+      
+    - name: Deploy {{ service }}
+      ansible.builtin.shell: docker stack deploy -c {{ workdir }}/{{ service }}/docker-compose.yml {{ service }}
+
+    - name: Wait until {{ service }} is running
+      ansible.builtin.shell: docker stack services --filter name={{ service }}_{{ service }} {{ service }} | grep -c 1/1 || /bin/true
+      register: service_running
+      until: service_running.stdout == "1"
+      retries: 40
+      delay: 20
+
+  when: swarm == true
+
+- name: Deploy {{ service }}
+  block:
+
+    - name: Deploy {{ service }}
+      ansible.builtin.shell: docker compose -f {{ workdir }}/{{ service }}/docker-compose.yml up -d
+
+    - name: Wait until {{ service }} is running
+      ansible.builtin.shell: docker inspect {{ service }}-{{service }}-1 | jq '.[] | .State.Status'
+      register: service_running
+      until: service_running.stdout == '"running"'
+      retries: 40
+      delay: 20
+
+  when: swarm == false
